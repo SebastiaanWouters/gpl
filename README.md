@@ -15,7 +15,7 @@
 - `docs/spec/SPEC.md` - normative format draft
 - `docs/spec/SPEC_EXPLAINED.md` - explainer and mental model
 - `fixtures/` - Monaco and Aachen test and benchmark data
-- `pool/` - checked-out reference engines and libraries for research
+- `pool/` - local research checkouts only; not tracked in git and expected to contain `motis/`, `navitia/`, `OpenTripPlanner/`, `osmix/`, `osrm-backend/`, `r5/`, and `valhalla/`
 
 ## Status
 
