@@ -1,0 +1,18 @@
+pool/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Local env files
+.env
+.env.*
+
+# Common build artifacts
+target/
+dist/
+build/
+coverage/
+node_modules/
