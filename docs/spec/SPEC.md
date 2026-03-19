@@ -1,14 +1,24 @@
-# GPL v1 Draft Specification
+# GPL v1 Base Format Release Candidate Specification
 
 ## 1. Status of This Document
 
-This document is a draft of the GPL v1 binary format.
+This document defines the GPL v1 base-format release candidate.
 
-The architectural model is mostly settled. The remaining deferred items are listed in Section 18 and must be frozen before GPL v1 is declared stable.
+The GPL v1 base interoperability surface is frozen for implementation: the single-file container, feature and section compatibility model, canonical ordering and encoding rules, fixed core section set, shared street graph, turn semantics, immutable profile matrices, snap index, core transit model, stop/station anchoring, and validator requirements define the production contract for the base `.gpl` file.
 
-This document should be read as a GPL v1 release candidate for the base format. The base v1 contract is intended to be frozen for implementation: the single-file container, feature and section compatibility model, canonical ordering and encoding rules, fixed core section set, shared street graph, turn semantics, immutable profile matrices, snap index, core transit model, stop/station anchoring, and validator requirements define the production interoperability surface.
+The remaining deferred items listed in Section 18 are extension-only and are outside base GPL v1 interoperability. They do not block release of the base GPL v1 format and MUST remain skippable and non-required until later standardized.
 
-The remaining open items are deliberately limited to extension-only work and do not change base-v1 interoperability: exact layouts for remaining non-core sections, optional pathway-aware extensions, and optional explicit frequency-template extensions. Such material stays skippable and non-required until standardized. The goal of GPL v1 is a production-ready immutable base format for high-performance multimodal routing engines, with realtime and other dynamic behavior handled by external overlays.
+GPL v1 Final is expected to require implementation evidence in addition to a frozen spec, including at least one conforming writer, at least one independent conforming reader, and a published validation corpus covering required acceptance and rejection behavior.
+
+### 1.1 RC Change Policy
+
+While GPL v1 base is in release-candidate status:
+
+- editorial clarifications that do not change bytes or normative behavior are allowed
+- additional examples, fixtures, and test vectors are allowed
+- extension-only material may be added only as skippable, non-required work outside base interoperability
+
+Any change that alters a required section's presence, field layout, encoding, sort rule, rejection condition, or normative meaning is a base-format change and MUST either be deferred to a later version or explicitly reset GPL v1 base RC status.
 
 ## 2. Introduction
 
@@ -23,7 +33,7 @@ GPL combines:
 
 GPL is optimized for query performance first.
 
-## 3. Scope
+## 3. Scope of the Base RC
 
 GPL v1 defines:
 
@@ -51,6 +61,8 @@ GPL v1 does not attempt to:
 
 The key words MUST, MUST NOT, REQUIRED, SHALL, SHALL NOT, SHOULD, SHOULD NOT, MAY, and OPTIONAL in this document are to be interpreted as described in RFC 2119 and RFC 8174 when, and only when, they appear in all capitals.
 
+### 5.1 Terminology
+
 Terms used throughout this document:
 
 - `record`: one fixed-size row in a flat section array
@@ -59,6 +71,35 @@ Terms used throughout this document:
 - `base file`: the immutable `.gpl` file
 - `overlay`: external mutable data layered on top of the base file
 - `service day`: the local GTFS service day in the feed timezone
+- `reader`: an implementation that parses and serves data from a `.gpl` base file
+- `writer`: an implementation that produces a `.gpl` base file
+- `validator`: an implementation that checks whether a `.gpl` base file conforms to this specification
+- `strict validator`: a validator mode that rejects reserved non-zero bits or bytes and unknown reserved enum or flag values where this specification requires rejection
+
+### 5.2 Conformance Targets
+
+Interoperability is defined against this specification rather than against any one implementation.
+
+A conforming GPL v1 base reader:
+
+- MUST accept any base GPL v1 file that satisfies this specification and whose required features and required sections it supports
+- MUST reject files that violate required container, feature, section, schema, or normative semantic rules
+- MUST ignore unsupported sections marked `SKIPPABLE` after validating their directory framing and byte ranges
+- MUST NOT require any extension section for base GPL v1 interoperability
+
+A conforming GPL v1 base writer:
+
+- MUST emit files that satisfy all base GPL v1 MUST and MUST NOT requirements in this specification
+- MUST emit every base-required section listed in Appendix F with the required presence and cardinality rules
+- MUST use the section schema versions and frozen layouts defined by this specification for base sections
+- MUST reject source inputs whose semantics cannot be represented losslessly within base GPL v1 unless an explicit required extension defining those semantics is in use
+
+A conforming GPL v1 validator:
+
+- MUST fail any file that violates a GPL v1 base MUST or MUST NOT requirement
+- MUST report an overall pass or fail result for base GPL v1 conformance
+- SHOULD classify failures by container validity, section structural validity, cross-section referential validity, and semantic dataset validity
+- MAY implement advisory checks beyond this specification, but MUST distinguish advisory results from normative conformance failures
 
 ## 6. Versioning, Compatibility, and Extensibility
 
@@ -99,6 +140,8 @@ Each section directory entry declares:
 
 A reader MUST reject a required section whose type, schema major version, or required semantics it does not support.
 
+A reader MUST ignore any unsupported section marked `SKIPPABLE`, provided the section directory entry is valid and the declared byte range is structurally in-bounds.
+
 ### 6.5 Section Type and Feature Registries
 
 GPL v1 SHOULD maintain stable numeric registries for:
@@ -111,6 +154,8 @@ GPL v1 SHOULD maintain stable numeric registries for:
 Vendor or experimental section types MUST be skippable.
 
 The assignments in Appendix B are normative for GPL v1.
+
+While GPL v1 base remains in RC status, the Appendix B assignments for base interoperability are frozen and MUST NOT be renumbered or repurposed.
 
 ## 7. Common Encoding Rules
 
@@ -947,17 +992,19 @@ For any one `feed_namespace` and `service_date_ymd`, the tuple `(source_trip_id,
 
 Realtime overlays MUST attach by this canonical stable identity and MUST NOT attach by dense `trip_id` or connection row index.
 
-## 18. Deferred Items Before v1 Freeze
+## 18. Deferred Extension Areas Outside Base RC
 
-The following items remain to be frozen before GPL v1 is declared stable:
+The following areas are intentionally deferred from base GPL v1 and remain optional extension work for later standardization:
 
 - exact fixed record layouts and field widths for remaining non-core or extension sections
 - exact optional extension layouts for pathway-aware files
 - exact optional extension layouts for explicit frequency-template files
 
-Any section layout deferred by this section is outside GPL v1 base interoperability. Such sections MUST NOT be required for reading a GPL v1 file and MUST be emitted only as `SKIPPABLE` extensions until standardized.
+Any section layout deferred by this section is outside GPL v1 base interoperability. Such sections MUST NOT be required for reading a GPL v1 base file and MUST be emitted only as `SKIPPABLE` extensions until standardized.
 
 ## 19. Validation Classes
+
+A conforming validator MUST report an overall pass or fail result for base GPL v1 conformance.
 
 GPL validators SHOULD report results in at least these classes:
 

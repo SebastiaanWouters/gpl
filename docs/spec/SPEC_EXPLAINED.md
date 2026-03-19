@@ -10,6 +10,8 @@ It explains the format from the ground up: what problem GPL is solving, why the 
 
 This document is non-normative.
 
+It explains the GPL v1 base release candidate. If this explainer and `docs/spec/SPEC.md` ever disagree, `docs/spec/SPEC.md` wins.
+
 ## Start With The Problem
 
 Suppose you want a routing engine to answer questions like these very fast:
@@ -515,11 +517,11 @@ The big architecture is now clear:
 - anchors instead of permanent stop splits
 - immutable base file plus future overlays
 
-What remains to freeze is now limited to the extension areas still listed as deferred in the main spec.
+What remains deferred is now limited to the extension areas listed in the main spec.
 
 The core container, registries, and core record layouts are frozen, except for the explicitly deferred extension areas.
 
-What is still open is mainly:
+What is outside base GPL v1 conformance for now is mainly:
 
 - non-core or extension section layouts
 - pathway-aware extension details, if included later
@@ -527,7 +529,7 @@ What is still open is mainly:
 
 The GPL v1 base line is now much stricter: explicit pathway graphs and `exact_times = 0` frequency-template behavior are extension territory, not fuzzy maybe-supported core behavior.
 
-That is a healthy place to be in. The shape of the system is decided; the remaining work is making the bytes final.
+That is a healthy place to be in. The shape of the system is decided; the remaining work is proving and formalizing the base contract.
 
 ## Reading Guide
 
@@ -537,7 +539,7 @@ If you are new to GPL, read the spec in this order:
 2. Section 6 for compatibility rules
 3. Section 8 for the container
 4. Sections 12 through 17 for the routing model
-5. Section 18 for the remaining deferred extension areas
+5. Section 18 for the extension areas outside base GPL v1 conformance
 6. Appendix A for container bytes, Appendix B for registries, Appendix C and Appendix E for record layouts
 
 If you keep the four-layer mental model in your head while reading, the rest should click into place.
