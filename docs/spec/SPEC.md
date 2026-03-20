@@ -8,7 +8,7 @@ The GPL v1 base interoperability surface is frozen for implementation: the singl
 
 The remaining deferred items listed in Section 18 are extension-only and are outside base GPL v1 interoperability. They do not block release of the base GPL v1 format and MUST remain skippable and non-required until later standardized.
 
-GPL v1 Final is expected to require implementation evidence in addition to a frozen spec, including at least one conforming writer, at least one independent conforming reader, and a published validation corpus covering required acceptance and rejection behavior.
+The process and evidence required to leave RC are tracked in `docs/spec/RC_CHECKLIST.md`, including conforming writer, independent reader, validator corpus, determinism, and release-review evidence.
 
 ### 1.1 RC Change Policy
 

@@ -2,6 +2,8 @@
 
 This ledger turns the frozen GPL v1 base contract into explicit execution inputs for implementation and release review.
 
+Generated matrices under `docs/v1-final/` are planning aids. They help assign proof work, but they do not override the normative meaning of `docs/spec/SPEC.md`.
+
 ## Authority
 
 - `docs/spec/SPEC.md` is authoritative for GPL v1 base on-disk behavior.

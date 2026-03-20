@@ -7,102 +7,311 @@ const checklistPath = resolve(root, "docs/spec/RC_CHECKLIST.md");
 const traceabilityPath = resolve(root, "docs/v1-final/traceability-matrix.md");
 const evidencePath = resolve(root, "docs/v1-final/release-evidence-index.md");
 
+type Requirement = {
+  line: number;
+  heading: string;
+  summary: string;
+};
+
+type ChecklistItem = {
+  id: string;
+  section: string;
+  criterion: string;
+};
+
+type Rule<T> = {
+  value: T;
+  when: (value: Requirement) => boolean;
+};
+
 function escapeCell(text: string): string {
   return text.replaceAll("|", "\\|");
 }
 
-function plannedWriterProof(requirement: string, heading: string): string {
-  if (heading.includes("Header") || heading.includes("Directory") || heading.includes("Footer") || heading.includes("Alignment")) {
-    return "minimal container writer layout tests";
-  }
-  if (requirement.includes("emit") || requirement.includes("Appendix F") || requirement.includes("writer")) {
-    return "full base writer golden fixtures";
-  }
-  if (requirement.includes("losslessly") || requirement.includes("source inputs")) {
-    return "writer rejection suite";
-  }
-  return "planned downstream writer coverage";
+function matchesAny(text: string, needles: readonly string[]): boolean {
+  return needles.some((needle) => text.includes(needle));
 }
 
-function plannedReaderProof(requirement: string): string {
-  if (requirement.includes("reader") || requirement.includes("SKIPPABLE") || requirement.includes("container_major") || requirement.includes("required_features") || requirement.includes("optional_features")) {
-    return "independent reader compatibility suite";
-  }
-  return "planned downstream reader coverage";
+function startsWithAny(text: string, prefixes: readonly string[]): boolean {
+  return prefixes.some((prefix) => text.startsWith(prefix));
 }
 
-function plannedValidatorProof(requirement: string, heading: string): string {
-  if (heading.includes("Header") || heading.includes("Directory") || heading.includes("Footer") || heading.includes("Alignment") || heading.includes("Compression")) {
-    return "container validator checks";
+function normalizeRequirement(line: string): string | null {
+  const stripped = line.trim().replace(/^[-*]\s*/, "");
+  if (!stripped.includes("MUST")) {
+    return null;
   }
-  if (requirement.includes("reserved") || requirement.includes("flags") || requirement.includes("reserved_zero")) {
-    return "strict-validator reserved-zero checks";
+
+  if (!stripped.endsWith(":")) {
+    return stripped;
   }
-  if (requirement.includes("count") || requirement.includes("sum") || requirement.includes("span") || requirement.includes("in bounds")) {
-    return "cross-section validator checks";
+
+  const sentences = stripped.split(/(?<=\.)\s+/);
+  const atomicSentences = sentences.filter((sentence) => sentence.includes("MUST") && !sentence.endsWith(":"));
+  if (atomicSentences.length === 0) {
+    return null;
   }
-  return "semantic/conformance validator checks";
+
+  return atomicSentences.join(" ");
 }
 
-function plannedCorpusFixture(requirement: string, heading: string): string {
-  if (heading.includes("Header") || heading.includes("Directory") || heading.includes("Footer")) {
-    return "minimal-valid + malformed-container fixtures";
-  }
-  if (requirement.includes("SKIPPABLE") || requirement.includes("required_features") || requirement.includes("optional_features") || requirement.includes("container_major") || requirement.includes("container_minor")) {
-    return "compatibility-edge fixtures";
-  }
-  if (requirement.includes("count") || requirement.includes("sum") || requirement.includes("dependency")) {
-    return "dependency invalid fixtures";
-  }
-  return "planned valid/invalid corpus family";
-}
-
-function plannedReleaseEvidence(heading: string): string {
-  if (heading.startsWith("6.")) {
-    return "RC-6-*";
-  }
-  if (heading.startsWith("19.") || heading.startsWith("20.")) {
-    return "RC-3-* and RC-6-*";
-  }
-  if (heading.startsWith("8.")) {
-    return "RC-2-* and RC-5-*";
-  }
-  return "RC mapping planned";
-}
-
-function buildTraceability(): string {
+function extractRequirements(): Requirement[] {
   const lines = readFileSync(specPath, "utf8").split(/\r?\n/);
   let heading = "Top-level";
-  const rows: string[] = [];
+  let inFence = false;
+  const requirements: Requirement[] = [];
 
   for (const [index, line] of lines.entries()) {
-    const number = index + 1;
     const stripped = line.trim();
+    if (stripped.startsWith("```")) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) {
+      continue;
+    }
     if (stripped.startsWith("## ") || stripped.startsWith("### ")) {
       heading = stripped.replace(/^#+\s+/, "");
     }
-    if (!stripped.includes("MUST") || stripped.startsWith("```")) {
+
+    const summary = normalizeRequirement(line);
+    if (!summary) {
       continue;
     }
-    const requirement = escapeCell(stripped.replace(/^[-*]\s*/, ""));
-    const requirementId = `SPEC-L${number.toString().padStart(4, "0")}`;
-    rows.push(
-      `| \`${requirementId}\` | \`docs/spec/SPEC.md:${number}\` | ${escapeCell(heading)} | ${requirement} | ${escapeCell(plannedWriterProof(requirement, heading))} | ${escapeCell(plannedReaderProof(requirement))} | ${escapeCell(plannedValidatorProof(requirement, heading))} | ${escapeCell(plannedCorpusFixture(requirement, heading))} | ${escapeCell(plannedReleaseEvidence(heading))} | planned |`
-    );
+
+    requirements.push({
+      line: index + 1,
+      heading,
+      summary
+    });
   }
+
+  return requirements;
+}
+
+function isGovernanceRequirement(requirement: Requirement): boolean {
+  return (
+    startsWithAny(requirement.heading, ["1.", "1.1", "5. Conformance Language and Terminology", "6.5"]) ||
+    matchesAny(requirement.summary, [
+      "extension-only",
+      "RFC 2119",
+      "RFC 8174",
+      "RC status",
+      "Appendix B assignments",
+      "renumbered or repurposed"
+    ])
+  );
+}
+
+function isContainerRequirement(requirement: Requirement): boolean {
+  return (
+    matchesAny(requirement.heading, ["Header", "Directory", "Footer", "Alignment", "Compression"]) ||
+    matchesAny(requirement.summary, [
+      "`header_size`",
+      "`directory_offset`",
+      "`directory_length`",
+      "`header_flags`",
+      "`checksum_kind`",
+      "`footer_",
+      "`stored_length`",
+      "`logical_length`",
+      "MMAP_SAFE"
+    ])
+  );
+}
+
+function isReaderCompatibilityRequirement(requirement: Requirement): boolean {
+  return matchesAny(requirement.summary, [
+    "A reader MUST reject",
+    "A reader MUST ignore",
+    "reader MUST reject",
+    "reader MUST ignore",
+    "required_features",
+    "optional_features",
+    "container_major",
+    "SKIPPABLE",
+    "required section"
+  ]);
+}
+
+function isWriterRejectionRequirement(requirement: Requirement): boolean {
+  return matchesAny(requirement.summary, [
+    "writer MUST reject",
+    "MUST reject source inputs",
+    "cannot be represented losslessly",
+    "rather than approximated"
+  ]);
+}
+
+function isCrossSectionRequirement(requirement: Requirement): boolean {
+  return matchesAny(requirement.summary, [
+    "contiguous span",
+    "in bounds",
+    "must be in bounds",
+    "offset +",
+    "count)",
+    "span ",
+    "belongs to the outgoing edge span",
+    "resolves to",
+    "exactly equal",
+    "aligned 1:1",
+    "cardinalities MUST exactly equal"
+  ]);
+}
+
+function isReservedZeroRequirement(requirement: Requirement): boolean {
+  return matchesAny(requirement.summary, [
+    "reserved bytes MUST be zero",
+    "reserved-zero",
+    "unknown `header_flags` bits",
+    "unknown `section_flags` bits"
+  ]);
+}
+
+function isDeterminismRequirement(requirement: Requirement): boolean {
+  return matchesAny(requirement.summary, ["deterministic", "byte-identical", "Tie-breaking MUST be deterministic"]);
+}
+
+function isSectionLayoutRequirement(requirement: Requirement): boolean {
+  return matchesAny(requirement.summary, [
+    "MUST use the `",
+    "MUST be a flat",
+    "MUST exist exactly once",
+    "MUST exist at most once",
+    "MUST define the canonical profile ordering",
+    "MUST be a flat `u32` edge-id array"
+  ]);
+}
+
+function ruleValue<T>(requirement: Requirement, rules: readonly Rule<T>[], fallback: T): T {
+  for (const rule of rules) {
+    if (rule.when(requirement)) {
+      return rule.value;
+    }
+  }
+  return fallback;
+}
+
+const writerProofRules: readonly Rule<string>[] = [
+  { value: "not-applicable", when: isGovernanceRequirement },
+  { value: "writer-reject", when: isWriterRejectionRequirement },
+  { value: "writer-layout", when: isContainerRequirement },
+  { value: "writer-golden", when: (requirement) => matchesAny(requirement.summary, ["MUST emit", "Appendix F"]) },
+  { value: "writer-semantic", when: isSectionLayoutRequirement }
+];
+
+const readerProofRules: readonly Rule<string>[] = [
+  { value: "not-applicable", when: isGovernanceRequirement },
+  { value: "reader-compat", when: isReaderCompatibilityRequirement },
+  { value: "reader-semantic", when: (requirement) => requirement.summary.includes("Readers MUST use normative values") }
+];
+
+const validatorProofRules: readonly Rule<string>[] = [
+  { value: "not-applicable", when: isGovernanceRequirement },
+  { value: "validator-reserved-zero", when: isReservedZeroRequirement },
+  { value: "validator-container", when: isContainerRequirement },
+  { value: "validator-cross-section", when: isCrossSectionRequirement },
+  { value: "validator-semantic", when: () => true }
+];
+
+const corpusFixtureRules: readonly Rule<string>[] = [
+  { value: "not-applicable", when: isGovernanceRequirement },
+  { value: "fixture-compat-edge", when: isReaderCompatibilityRequirement },
+  { value: "fixture-minimal-container", when: isContainerRequirement },
+  { value: "fixture-dependency-invalid", when: isCrossSectionRequirement },
+  { value: "fixture-valid-invalid", when: () => true }
+];
+
+const releaseEvidenceRules: readonly Rule<string[]>[] = [
+  { value: ["RC-4-01", "RC-4-02"], when: (requirement) => requirement.heading.startsWith("6.5") },
+  { value: ["RC-2-01", "RC-4-03", "RC-7-02"], when: isGovernanceRequirement },
+  { value: ["RC-3-04", "RC-5-02", "RC-6-02"], when: isReaderCompatibilityRequirement },
+  { value: ["RC-2-04", "RC-3-02", "RC-5-02"], when: isReservedZeroRequirement },
+  { value: ["RC-3-02", "RC-5-02", "RC-6-04"], when: isContainerRequirement },
+  { value: ["RC-6-03"], when: isDeterminismRequirement },
+  { value: ["RC-2-03", "RC-3-02", "RC-6-01"], when: isSectionLayoutRequirement },
+  { value: ["RC-3-02", "RC-6-01"], when: isWriterRejectionRequirement },
+  { value: ["RC-3-02", "RC-5-02"], when: isCrossSectionRequirement }
+];
+
+function renderChecklistIds(ids: readonly string[]): string {
+  return ids.length > 0 ? ids.join(", ") : "unmapped";
+}
+
+function rowStatus(releaseEvidence: readonly string[]): string {
+  return releaseEvidence.length > 0 ? "planned" : "review-needed";
+}
+
+function buildTraceability(): string {
+  const rows = extractRequirements().map((requirement) => {
+    const requirementId = `SPEC-L${requirement.line.toString().padStart(4, "0")}`;
+    const writerProof = ruleValue(requirement, writerProofRules, "writer-review-needed");
+    const readerProof = ruleValue(requirement, readerProofRules, "reader-review-needed");
+    const validatorProof = ruleValue(requirement, validatorProofRules, "validator-review-needed");
+    const corpusFixture = ruleValue(requirement, corpusFixtureRules, "fixture-review-needed");
+    const releaseEvidence = ruleValue(requirement, releaseEvidenceRules, []);
+
+    return `| \`${requirementId}\` | \`docs/spec/SPEC.md:${requirement.line}\` | ${escapeCell(requirement.heading)} | ${escapeCell(requirement.summary)} | ${writerProof} | ${readerProof} | ${validatorProof} | ${corpusFixture} | ${renderChecklistIds(releaseEvidence)} | ${rowStatus(releaseEvidence)} |`;
+  });
 
   return [
     "# Traceability Matrix",
     "",
-    "This generated matrix seeds the clause-level proof-path ledger for GPL v1 final. It lists every `MUST` or `MUST NOT` line in `docs/spec/SPEC.md` and assigns a planned writer, reader, validator, corpus, and release-evidence home for each requirement.",
+    "This generated matrix seeds the clause-level proof-path ledger for GPL v1 final. It lists atomic `MUST` or `MUST NOT` requirements from `docs/spec/SPEC.md` and assigns planned proof types plus related RC checklist IDs.",
     "",
-    "| Requirement ID | Spec ref | Section | Requirement summary | Planned writer proof | Planned reader proof | Planned validator proof | Planned corpus fixture | Planned release evidence | Status |",
+    "Rows marked `review-needed` are intentionally left unmapped rather than pretending confidence the current heuristics do not have.",
+    "",
+    "| Requirement ID | Spec ref | Section | Requirement summary | Planned writer proof type | Planned reader proof type | Planned validator proof type | Planned corpus fixture type | Related checklist IDs | Status |",
     "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ...rows,
     "",
     "Generated by `scripts/render_control_plane.ts`.",
     ""
   ].join("\n");
+}
+
+function suggestedArtifactShape(item: ChecklistItem): string {
+  if (item.section.includes("RC Scope")) {
+    return "scope review note or freeze-ledger entry";
+  }
+  if (item.section.includes("Document Freeze")) {
+    return "spec review note or matrix diff";
+  }
+  if (item.section.includes("Conformance")) {
+    return "traceability matrix row set or conformance report";
+  }
+  if (item.section.includes("Registry")) {
+    return "freeze ledger or registry review note";
+  }
+  if (item.section.includes("Validation")) {
+    return "corpus manifest plus validator fixture results";
+  }
+  if (item.section.includes("Implementation")) {
+    return "writer/reader test report or determinism log";
+  }
+  if (item.section.includes("Exit")) {
+    return "release signoff note";
+  }
+  return "review note";
+}
+
+function ownerArea(section: string): string {
+  if (section.includes("Validation")) {
+    return "validator/corpus";
+  }
+  if (section.includes("Implementation")) {
+    return "writer/reader/hardening";
+  }
+  if (section.includes("Registry")) {
+    return "governance/spec";
+  }
+  if (section.includes("Document")) {
+    return "spec/governance";
+  }
+  if (section.includes("Exit")) {
+    return "release owner";
+  }
+  return "control plane";
 }
 
 function buildEvidenceIndex(): string {
@@ -121,20 +330,26 @@ function buildEvidenceIndex(): string {
     if (!stripped.startsWith("- ") || !section) {
       continue;
     }
+
     const count = (counters.get(section) ?? 0) + 1;
     counters.set(section, count);
-    const itemId = `RC-${section.split(".", 1)[0]}-${count.toString().padStart(2, "0")}`;
+    const item: ChecklistItem = {
+      id: `RC-${section.split(".", 1)[0]}-${count.toString().padStart(2, "0")}`,
+      section,
+      criterion: stripped.slice(2)
+    };
+
     rows.push(
-      `| \`${itemId}\` | ${escapeCell(section)} | ${escapeCell(stripped.slice(2))} | ${escapeCell(section.includes("Validation") ? "validator/corpus" : section.includes("Implementation") ? "writer/reader/hardening" : section.includes("Registry") ? "governance/spec" : section.includes("Document") ? "spec/governance" : section.includes("Exit") ? "release owner" : "control plane")} | planned artifact path TBD | planned |`
+      `| \`${item.id}\` | ${escapeCell(item.section)} | ${escapeCell(item.criterion)} | ${ownerArea(item.section)} | ${escapeCell(suggestedArtifactShape(item))} | planned |`
     );
   }
 
   return [
     "# Release Evidence Index",
     "",
-    "This generated skeleton maps each RC checklist bullet to a placeholder release-evidence row. It is intentionally incomplete until later phases land concrete artifacts.",
+    "This generated skeleton maps each RC checklist bullet to a suggested evidence shape. It remains intentionally lightweight until later phases land concrete artifact paths.",
     "",
-    "| Checklist ID | Checklist section | Criterion | Owner area | Planned artifact | Status |",
+    "| Checklist ID | Checklist section | Criterion | Owner area | Suggested artifact shape | Status |",
     "| --- | --- | --- | --- | --- | --- |",
     ...rows,
     "",
