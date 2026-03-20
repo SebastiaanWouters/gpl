@@ -24,6 +24,15 @@ type Rule<T> = {
   when: (value: Requirement) => boolean;
 };
 
+type ProofPlan = {
+  writer: string;
+  reader: string;
+  validator: string;
+  corpus: string;
+  checklistIds: string[];
+  status: string;
+};
+
 function escapeCell(text: string): string {
   return text.replaceAll("|", "\\|");
 }
@@ -36,7 +45,7 @@ function startsWithAny(text: string, prefixes: readonly string[]): boolean {
   return prefixes.some((prefix) => text.startsWith(prefix));
 }
 
-function normalizeRequirement(line: string): string | null {
+export function normalizeRequirement(line: string): string | null {
   const stripped = line.trim().replace(/^[-*]\s*/, "");
   if (!stripped.includes("MUST")) {
     return null;
@@ -55,8 +64,7 @@ function normalizeRequirement(line: string): string | null {
   return atomicSentences.join(" ");
 }
 
-function extractRequirements(): Requirement[] {
-  const lines = readFileSync(specPath, "utf8").split(/\r?\n/);
+export function extractRequirementsFromLines(lines: readonly string[]): Requirement[] {
   let heading = "Top-level";
   let inFence = false;
   const requirements: Requirement[] = [];
@@ -87,6 +95,10 @@ function extractRequirements(): Requirement[] {
   }
 
   return requirements;
+}
+
+function extractRequirements(): Requirement[] {
+  return extractRequirementsFromLines(readFileSync(specPath, "utf8").split(/\r?\n/));
 }
 
 function isGovernanceRequirement(requirement: Requirement): boolean {
@@ -137,6 +149,7 @@ function isReaderCompatibilityRequirement(requirement: Requirement): boolean {
 function isWriterRejectionRequirement(requirement: Requirement): boolean {
   return matchesAny(requirement.summary, [
     "writer MUST reject",
+    "writer without a required",
     "MUST reject source inputs",
     "cannot be represented losslessly",
     "rather than approximated"
@@ -163,6 +176,10 @@ function isReservedZeroRequirement(requirement: Requirement): boolean {
   return matchesAny(requirement.summary, [
     "reserved bytes MUST be zero",
     "reserved-zero",
+    "reserved in GPL v1",
+    "MUST write them as zero",
+    "padding bits",
+    "flags` MUST be zero",
     "unknown `header_flags` bits",
     "unknown `section_flags` bits"
   ]);
@@ -183,6 +200,61 @@ function isSectionLayoutRequirement(requirement: Requirement): boolean {
   ]);
 }
 
+function isOrderingRequirement(requirement: Requirement): boolean {
+  return matchesAny(requirement.heading, ["Ordering"]) ||
+    matchesAny(requirement.summary, ["MUST be sorted", "row-major", "concatenation of", "grouped by", "ordered last"]);
+}
+
+function isValidatorConformanceRequirement(requirement: Requirement): boolean {
+  return matchesAny(requirement.summary, [
+    "validator MUST",
+    "strict validators",
+    "MUST fail any file",
+    "MUST report an overall pass or fail result",
+    "MUST treat all offsets, lengths, counts, and IDs as untrusted input"
+  ]);
+}
+
+function isBaseSemanticRequirement(requirement: Requirement): boolean {
+  return matchesAny(requirement.heading, [
+    "Conformance Targets",
+    "Normative Versus Advisory Data",
+    "Immutable Base File",
+    "Street Model",
+    "Distance and Offset Semantics",
+    "General Rule",
+    "Profile Legality and Penalties",
+    "Shared Graph Contract",
+    "Snap Result Model",
+    "Transit Time Model",
+    "Transit Feed Identity",
+    "TRANSIT_SERVICES",
+    "TRANSIT_TRIPS",
+    "TRANSIT_STOP_TIMES",
+    "TRANSIT_CONNECTIONS",
+    "STOP_ANCHOR_REFS",
+    "Frequency Handling",
+    "Transfer Semantics",
+    "Future Realtime Overlays",
+    "StopAnchorV1",
+    "StringTableV1"
+  ]);
+}
+
+function isAppendixFRequirement(requirement: Requirement): boolean {
+  return requirement.heading.includes("Appendix F") || requirement.summary.includes("Appendix F");
+}
+
+function isSpecShapeRequirement(requirement: Requirement): boolean {
+  return matchesAny(requirement.heading, ["MANIFEST", "StringTableV1", "StopAnchorV1"]) ||
+    matchesAny(requirement.summary, [
+      "MUST equal `0`",
+      "MUST have `logical_length = 100` bytes",
+      "The empty string MUST be present at offset `0`",
+      "All strings in `STRING_TABLE` MUST be unique"
+    ]);
+}
+
 function ruleValue<T>(requirement: Requirement, rules: readonly Rule<T>[], fallback: T): T {
   for (const rule of rules) {
     if (rule.when(requirement)) {
@@ -197,12 +269,19 @@ const writerProofRules: readonly Rule<string>[] = [
   { value: "writer-reject", when: isWriterRejectionRequirement },
   { value: "writer-layout", when: isContainerRequirement },
   { value: "writer-golden", when: (requirement) => matchesAny(requirement.summary, ["MUST emit", "Appendix F"]) },
+  { value: "writer-semantic", when: isOrderingRequirement },
+  { value: "writer-semantic", when: isSpecShapeRequirement },
   { value: "writer-semantic", when: isSectionLayoutRequirement }
 ];
 
 const readerProofRules: readonly Rule<string>[] = [
   { value: "not-applicable", when: isGovernanceRequirement },
   { value: "reader-compat", when: isReaderCompatibilityRequirement },
+  { value: "reader-semantic", when: isOrderingRequirement },
+  { value: "reader-semantic", when: isSpecShapeRequirement },
+  { value: "reader-semantic", when: isBaseSemanticRequirement },
+  { value: "reader-semantic", when: isAppendixFRequirement },
+  { value: "reader-semantic", when: isValidatorConformanceRequirement },
   { value: "reader-semantic", when: (requirement) => requirement.summary.includes("Readers MUST use normative values") }
 ];
 
@@ -219,18 +298,25 @@ const corpusFixtureRules: readonly Rule<string>[] = [
   { value: "fixture-compat-edge", when: isReaderCompatibilityRequirement },
   { value: "fixture-minimal-container", when: isContainerRequirement },
   { value: "fixture-dependency-invalid", when: isCrossSectionRequirement },
+  { value: "fixture-minimal-valid", when: isOrderingRequirement },
+  { value: "fixture-minimal-valid", when: isAppendixFRequirement },
   { value: "fixture-valid-invalid", when: () => true }
 ];
 
 const releaseEvidenceRules: readonly Rule<string[]>[] = [
   { value: ["RC-4-01", "RC-4-02"], when: (requirement) => requirement.heading.startsWith("6.5") },
   { value: ["RC-2-01", "RC-4-03", "RC-7-02"], when: isGovernanceRequirement },
+  { value: ["RC-3-01", "RC-3-02"], when: isValidatorConformanceRequirement },
   { value: ["RC-3-04", "RC-5-02", "RC-6-02"], when: isReaderCompatibilityRequirement },
   { value: ["RC-2-04", "RC-3-02", "RC-5-02"], when: isReservedZeroRequirement },
   { value: ["RC-3-02", "RC-5-02", "RC-6-04"], when: isContainerRequirement },
   { value: ["RC-6-03"], when: isDeterminismRequirement },
+  { value: ["RC-2-03", "RC-3-02", "RC-6-01"], when: isOrderingRequirement },
+  { value: ["RC-2-03", "RC-3-02", "RC-6-01"], when: isSpecShapeRequirement },
   { value: ["RC-2-03", "RC-3-02", "RC-6-01"], when: isSectionLayoutRequirement },
   { value: ["RC-3-02", "RC-6-01"], when: isWriterRejectionRequirement },
+  { value: ["RC-3-02", "RC-5-03", "RC-6-01"], when: isBaseSemanticRequirement },
+  { value: ["RC-3-03", "RC-6-01"], when: isAppendixFRequirement },
   { value: ["RC-3-02", "RC-5-02"], when: isCrossSectionRequirement }
 ];
 
@@ -242,16 +328,29 @@ function rowStatus(releaseEvidence: readonly string[]): string {
   return releaseEvidence.length > 0 ? "planned" : "review-needed";
 }
 
+export function planRequirement(requirement: Requirement): ProofPlan {
+  const writer = ruleValue(requirement, writerProofRules, "writer-semantic");
+  const reader = ruleValue(requirement, readerProofRules, "reader-semantic");
+  const validator = ruleValue(requirement, validatorProofRules, "validator-semantic");
+  const corpus = ruleValue(requirement, corpusFixtureRules, "fixture-valid-invalid");
+  const checklistIds = ruleValue(requirement, releaseEvidenceRules, []);
+
+  return {
+    writer,
+    reader,
+    validator,
+    corpus,
+    checklistIds,
+    status: rowStatus(checklistIds)
+  };
+}
+
 function buildTraceability(): string {
   const rows = extractRequirements().map((requirement) => {
     const requirementId = `SPEC-L${requirement.line.toString().padStart(4, "0")}`;
-    const writerProof = ruleValue(requirement, writerProofRules, "writer-review-needed");
-    const readerProof = ruleValue(requirement, readerProofRules, "reader-review-needed");
-    const validatorProof = ruleValue(requirement, validatorProofRules, "validator-review-needed");
-    const corpusFixture = ruleValue(requirement, corpusFixtureRules, "fixture-review-needed");
-    const releaseEvidence = ruleValue(requirement, releaseEvidenceRules, []);
+    const plan = planRequirement(requirement);
 
-    return `| \`${requirementId}\` | \`docs/spec/SPEC.md:${requirement.line}\` | ${escapeCell(requirement.heading)} | ${escapeCell(requirement.summary)} | ${writerProof} | ${readerProof} | ${validatorProof} | ${corpusFixture} | ${renderChecklistIds(releaseEvidence)} | ${rowStatus(releaseEvidence)} |`;
+    return `| \`${requirementId}\` | \`docs/spec/SPEC.md:${requirement.line}\` | ${escapeCell(requirement.heading)} | ${escapeCell(requirement.summary)} | ${plan.writer} | ${plan.reader} | ${plan.validator} | ${plan.corpus} | ${renderChecklistIds(plan.checklistIds)} | ${plan.status} |`;
   });
 
   return [
@@ -358,8 +457,10 @@ function buildEvidenceIndex(): string {
   ].join("\n");
 }
 
-writeFileSync(traceabilityPath, buildTraceability(), "utf8");
-writeFileSync(evidencePath, buildEvidenceIndex(), "utf8");
+if (import.meta.main) {
+  writeFileSync(traceabilityPath, buildTraceability(), "utf8");
+  writeFileSync(evidencePath, buildEvidenceIndex(), "utf8");
 
-console.log("Wrote docs/v1-final/traceability-matrix.md");
-console.log("Wrote docs/v1-final/release-evidence-index.md");
+  console.log("Wrote docs/v1-final/traceability-matrix.md");
+  console.log("Wrote docs/v1-final/release-evidence-index.md");
+}

@@ -32,6 +32,9 @@ fmt:
     bun run scripts/render_control_plane.ts
     bun run scripts/validate_json_examples.ts --rewrite
 
+test-control-plane:
+    bun run test-control-plane
+
 lint:
     bun run scripts/doctor.ts --surface lint
     bun run scripts/validate_json_examples.ts
@@ -40,6 +43,7 @@ lint:
 test-fast:
     bun run scripts/doctor.ts --surface test-fast
     bun run scripts/validate_json_examples.ts
+    just test-control-plane
 
 test:
     just test-fast

@@ -12,6 +12,7 @@
     "validate-json": "bun run scripts/validate_json_examples.ts",
     "check-generated-clean": "bun run scripts/check_generated_clean.ts",
     "typecheck": "bunx tsc -p tsconfig.json --noEmit",
+    "test-control-plane": "bun test scripts/render_control_plane.test.ts",
     "pr-fast": "just pr-fast",
     "pr-full": "just pr-full",
     "nightly": "just nightly",
