@@ -1,0 +1,31 @@
+[
+  {
+    "expected_action": "accept",
+    "fixture_id": "minimal-valid",
+    "kind": "valid",
+    "notes": "Bootstrap example for the future minimal hand-checkable valid file.",
+    "spec_refs": [
+      "docs/spec/RC_CHECKLIST.md:46"
+    ]
+  },
+  {
+    "expected_action": "accept",
+    "fixture_id": "monaco-valid",
+    "kind": "valid",
+    "notes": "Bootstrap example for the Monaco integration fixture.",
+    "spec_refs": [
+      "docs/prd-v1.md:40",
+      "docs/spec/RC_CHECKLIST.md:46"
+    ]
+  },
+  {
+    "expected_action": "reject",
+    "failure_class": "unknown_required_feature",
+    "fixture_id": "unknown-required-feature-bit",
+    "kind": "invalid",
+    "notes": "Bootstrap example for a required-feature compatibility rejection.",
+    "spec_refs": [
+      "docs/spec/SPEC.md:129"
+    ]
+  }
+]

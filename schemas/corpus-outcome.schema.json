@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://geopool.dev/schemas/corpus-outcome.schema.json",
+  "title": "GPL Corpus Outcomes",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "fixture_id",
+      "kind",
+      "expected_action"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "fixture_id": {
+        "type": "string",
+        "minLength": 1
+      },
+      "kind": {
+        "type": "string",
+        "enum": [
+          "valid",
+          "invalid"
+        ]
+      },
+      "expected_action": {
+        "type": "string",
+        "enum": [
+          "accept",
+          "reject"
+        ]
+      },
+      "failure_class": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "spec_refs": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "notes": {
+        "type": "string"
+      }
+    }
+  }
+}

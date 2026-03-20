@@ -1,0 +1,19 @@
+{
+  "name": "geopool-bootstrap",
+  "devDependencies": {
+    "bun-types": "^1.3.11",
+    "typescript": "^5.9.3"
+  },
+  "packageManager": "bun@1.3.11",
+  "private": true,
+  "scripts": {
+    "doctor": "bun run scripts/doctor.ts",
+    "render-control-plane": "bun run scripts/render_control_plane.ts",
+    "validate-json": "bun run scripts/validate_json_examples.ts",
+    "check-generated-clean": "bun run scripts/check_generated_clean.ts",
+    "typecheck": "bunx tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "arktype": "^2.2.0"
+  }
+}

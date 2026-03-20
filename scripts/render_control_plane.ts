@@ -1,0 +1,150 @@
+import { readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+const root = resolve(import.meta.dir, "..");
+const specPath = resolve(root, "docs/spec/SPEC.md");
+const checklistPath = resolve(root, "docs/spec/RC_CHECKLIST.md");
+const traceabilityPath = resolve(root, "docs/v1-final/traceability-matrix.md");
+const evidencePath = resolve(root, "docs/v1-final/release-evidence-index.md");
+
+function escapeCell(text: string): string {
+  return text.replaceAll("|", "\\|");
+}
+
+function plannedWriterProof(requirement: string, heading: string): string {
+  if (heading.includes("Header") || heading.includes("Directory") || heading.includes("Footer") || heading.includes("Alignment")) {
+    return "minimal container writer layout tests";
+  }
+  if (requirement.includes("emit") || requirement.includes("Appendix F") || requirement.includes("writer")) {
+    return "full base writer golden fixtures";
+  }
+  if (requirement.includes("losslessly") || requirement.includes("source inputs")) {
+    return "writer rejection suite";
+  }
+  return "planned downstream writer coverage";
+}
+
+function plannedReaderProof(requirement: string): string {
+  if (requirement.includes("reader") || requirement.includes("SKIPPABLE") || requirement.includes("container_major") || requirement.includes("required_features") || requirement.includes("optional_features")) {
+    return "independent reader compatibility suite";
+  }
+  return "planned downstream reader coverage";
+}
+
+function plannedValidatorProof(requirement: string, heading: string): string {
+  if (heading.includes("Header") || heading.includes("Directory") || heading.includes("Footer") || heading.includes("Alignment") || heading.includes("Compression")) {
+    return "container validator checks";
+  }
+  if (requirement.includes("reserved") || requirement.includes("flags") || requirement.includes("reserved_zero")) {
+    return "strict-validator reserved-zero checks";
+  }
+  if (requirement.includes("count") || requirement.includes("sum") || requirement.includes("span") || requirement.includes("in bounds")) {
+    return "cross-section validator checks";
+  }
+  return "semantic/conformance validator checks";
+}
+
+function plannedCorpusFixture(requirement: string, heading: string): string {
+  if (heading.includes("Header") || heading.includes("Directory") || heading.includes("Footer")) {
+    return "minimal-valid + malformed-container fixtures";
+  }
+  if (requirement.includes("SKIPPABLE") || requirement.includes("required_features") || requirement.includes("optional_features") || requirement.includes("container_major") || requirement.includes("container_minor")) {
+    return "compatibility-edge fixtures";
+  }
+  if (requirement.includes("count") || requirement.includes("sum") || requirement.includes("dependency")) {
+    return "dependency invalid fixtures";
+  }
+  return "planned valid/invalid corpus family";
+}
+
+function plannedReleaseEvidence(heading: string): string {
+  if (heading.startsWith("6.")) {
+    return "RC-6-*";
+  }
+  if (heading.startsWith("19.") || heading.startsWith("20.")) {
+    return "RC-3-* and RC-6-*";
+  }
+  if (heading.startsWith("8.")) {
+    return "RC-2-* and RC-5-*";
+  }
+  return "RC mapping planned";
+}
+
+function buildTraceability(): string {
+  const lines = readFileSync(specPath, "utf8").split(/\r?\n/);
+  let heading = "Top-level";
+  const rows: string[] = [];
+
+  for (const [index, line] of lines.entries()) {
+    const number = index + 1;
+    const stripped = line.trim();
+    if (stripped.startsWith("## ") || stripped.startsWith("### ")) {
+      heading = stripped.replace(/^#+\s+/, "");
+    }
+    if (!stripped.includes("MUST") || stripped.startsWith("```")) {
+      continue;
+    }
+    const requirement = escapeCell(stripped.replace(/^[-*]\s*/, ""));
+    const requirementId = `SPEC-L${number.toString().padStart(4, "0")}`;
+    rows.push(
+      `| \`${requirementId}\` | \`docs/spec/SPEC.md:${number}\` | ${escapeCell(heading)} | ${requirement} | ${escapeCell(plannedWriterProof(requirement, heading))} | ${escapeCell(plannedReaderProof(requirement))} | ${escapeCell(plannedValidatorProof(requirement, heading))} | ${escapeCell(plannedCorpusFixture(requirement, heading))} | ${escapeCell(plannedReleaseEvidence(heading))} | planned |`
+    );
+  }
+
+  return [
+    "# Traceability Matrix",
+    "",
+    "This generated matrix seeds the clause-level proof-path ledger for GPL v1 final. It lists every `MUST` or `MUST NOT` line in `docs/spec/SPEC.md` and assigns a planned writer, reader, validator, corpus, and release-evidence home for each requirement.",
+    "",
+    "| Requirement ID | Spec ref | Section | Requirement summary | Planned writer proof | Planned reader proof | Planned validator proof | Planned corpus fixture | Planned release evidence | Status |",
+    "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+    ...rows,
+    "",
+    "Generated by `scripts/render_control_plane.ts`.",
+    ""
+  ].join("\n");
+}
+
+function buildEvidenceIndex(): string {
+  const lines = readFileSync(checklistPath, "utf8").split(/\r?\n/);
+  let section: string | undefined;
+  const counters = new Map<string, number>();
+  const rows: string[] = [];
+
+  for (const line of lines) {
+    const stripped = line.trim();
+    if (stripped.startsWith("## ")) {
+      section = stripped.slice(3);
+      counters.set(section, 0);
+      continue;
+    }
+    if (!stripped.startsWith("- ") || !section) {
+      continue;
+    }
+    const count = (counters.get(section) ?? 0) + 1;
+    counters.set(section, count);
+    const itemId = `RC-${section.split(".", 1)[0]}-${count.toString().padStart(2, "0")}`;
+    rows.push(
+      `| \`${itemId}\` | ${escapeCell(section)} | ${escapeCell(stripped.slice(2))} | ${escapeCell(section.includes("Validation") ? "validator/corpus" : section.includes("Implementation") ? "writer/reader/hardening" : section.includes("Registry") ? "governance/spec" : section.includes("Document") ? "spec/governance" : section.includes("Exit") ? "release owner" : "control plane")} | planned artifact path TBD | planned |`
+    );
+  }
+
+  return [
+    "# Release Evidence Index",
+    "",
+    "This generated skeleton maps each RC checklist bullet to a placeholder release-evidence row. It is intentionally incomplete until later phases land concrete artifacts.",
+    "",
+    "| Checklist ID | Checklist section | Criterion | Owner area | Planned artifact | Status |",
+    "| --- | --- | --- | --- | --- | --- |",
+    ...rows,
+    "",
+    "Generated by `scripts/render_control_plane.ts`.",
+    ""
+  ].join("\n");
+}
+
+writeFileSync(traceabilityPath, buildTraceability(), "utf8");
+writeFileSync(evidencePath, buildEvidenceIndex(), "utf8");
+
+console.log("Wrote docs/v1-final/traceability-matrix.md");
+console.log("Wrote docs/v1-final/release-evidence-index.md");

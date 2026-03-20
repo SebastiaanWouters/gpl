@@ -1,0 +1,35 @@
+{
+  "items": [
+    {
+      "artifact_path": "docs/v1-final/freeze-ledger.md",
+      "artifact_type": "doc",
+      "checklist_id": "RC-1-01",
+      "notes": "Bootstrap placeholder for RC scope evidence.",
+      "spec_refs": [
+        "docs/spec/RC_CHECKLIST.md:7"
+      ],
+      "status": "placeholder"
+    },
+    {
+      "artifact_path": "docs/v1-final/traceability-matrix.md",
+      "artifact_type": "manifest",
+      "checklist_id": "RC-3-02",
+      "notes": "Bootstrap placeholder for clause-to-proof-path coverage.",
+      "spec_refs": [
+        "docs/spec/RC_CHECKLIST.md:31"
+      ],
+      "status": "placeholder"
+    },
+    {
+      "artifact_path": "docs/v1-final/release-evidence-index.md",
+      "artifact_type": "manifest",
+      "checklist_id": "RC-7-01",
+      "notes": "Bootstrap placeholder for final signoff indexing.",
+      "spec_refs": [
+        "docs/spec/RC_CHECKLIST.md:58"
+      ],
+      "status": "placeholder"
+    }
+  ],
+  "manifest_version": "1.0"
+}

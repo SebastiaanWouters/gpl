@@ -1,0 +1,19 @@
+name: PR-fast
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  pr-fast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.85.0
+          components: rustfmt, clippy
+      - uses: taiki-e/install-action@just
+      - name: Run fast checks
+        run: just doctor && just fmt && just lint && just test-fast

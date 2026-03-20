@@ -1,0 +1,19 @@
+name: PR-full
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  pr-full:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.85.0
+          components: rustfmt, clippy
+      - uses: taiki-e/install-action@just
+      - name: Run full PR checks
+        run: just test && just corpus && just determinism && just release-check
