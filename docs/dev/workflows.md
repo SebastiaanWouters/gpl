@@ -4,16 +4,28 @@ This document defines the canonical CI stages and their intent. Workflow YAML fi
 
 | Workflow | Trigger | Goal | Owner area | Required check name | Canonical commands |
 | --- | --- | --- | --- | --- | --- |
-| `PR-fast` | pull requests | cheap branch-protection checks | workflow/DX | `PR-fast / pr-fast` | `just doctor`, `just fmt`, `just lint`, `just test-fast` |
-| `PR-full` | pull requests | slower confidence checks still suitable for PRs | workflow/DX + release quality | `PR-full / pr-full` | `just test`, `just corpus`, `just determinism`, `just release-check` |
-| `nightly` | scheduled/manual | heavier non-blocking checks and rehearsal surfaces | hardening/bench | `nightly / nightly` | `just fuzz`, `just bench` |
-| `release` | manual/tagged release prep | final gated verification surface | release owner | `release / release-check` | `just ci` |
+| `PR-fast` | pull requests | cheap branch-protection checks | workflow/DX | `PR-fast / pr-fast` | `just pr-fast` |
+| `PR-full` | pull requests | slower confidence checks still suitable for PRs | workflow/DX + release quality | `PR-full / pr-full` | `just pr-full` |
+| `nightly` | scheduled/manual | heavier non-blocking checks and rehearsal surfaces | hardening/bench | `nightly / nightly` | `just nightly` |
+| `release` | manual/tagged release prep | final gated verification surface | release owner | `release / release-check` | `just release` |
+
+## Local-to-CI mapping
+
+| Local command | When to use it | CI parity |
+| --- | --- | --- |
+| `just doctor` | repo/bootstrap sanity only | included in `just pr-fast` |
+| `just pr-fast` | normal day-to-day change loop | `PR-fast` |
+| `just pr-full` | broader pre-PR confidence | `PR-full` |
+| `just nightly` | optional hardening rehearsal | `nightly` |
+| `just release` | release gate only | `release` |
+| `just ci` | toolchain, workflow, or release-surface parity run | superset of `PR-fast`, `PR-full`, and `nightly` |
 
 ## Ownership model
 
 - Contributor and CI entrypoints stay aligned through `just`.
 - Fast checks should stay cheap enough for merge-heavy work.
 - Heavy jobs belong in nightly or release paths unless they become essential PR gates.
+- `just ci` is intentionally broader than the everyday contributor loop.
 
 ## Current bootstrap stance
 

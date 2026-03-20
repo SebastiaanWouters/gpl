@@ -16,4 +16,4 @@ jobs:
           components: rustfmt, clippy
       - uses: taiki-e/install-action@just
       - name: Run fast checks
-        run: just doctor && just fmt && just lint && just test-fast
+        run: just pr-fast

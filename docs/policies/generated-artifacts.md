@@ -4,10 +4,11 @@ Generated artifacts must be reproducible from a clean checkout.
 
 ## Policy
 
+- In this repository, "generated artifacts" means the checked-in generated docs and example manifests listed below.
 - Developers and CI use the same canonical regeneration entrypoints through the root `justfile`.
 - Regeneration must not leave the tree dirty unexpectedly.
-- Machine-readable example manifests and generated control-plane indexes are normalized through checked-in scripts.
-- Generated control-plane indexes are seed scaffolding; when spec structure changes, regenerate and review them instead of treating the output as self-authenticating.
+- Generated artifacts are normalized through checked-in scripts.
+- Generated control-plane indexes remain seed scaffolding; when spec structure changes, regenerate and review them instead of treating the output as self-authenticating.
 - Future corpus outputs, release evidence manifests, and derived fixtures must join this policy rather than introducing ad hoc generation steps.
 
 ## Current bootstrap-generated paths

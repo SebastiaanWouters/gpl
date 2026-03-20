@@ -19,6 +19,16 @@ The pinned Rust toolchain is the currently supported development toolchain for t
 
 Bootstrap scripts are written in TypeScript and run through Bun.
 
+## Recommended developer path
+
+- Daily bootstrap sanity: `just doctor`
+- Normal change loop: `just pr-fast`
+- Broader local confidence before opening a PR: `just pr-full`
+- Full CI parity for toolchain, workflow, or release-surface changes: `just ci`
+- Release gate only: `just release`
+
+`just` is the canonical interface. `package.json` mirrors the same top-level lanes for contributors who prefer `bun run <lane>`.
+
 ## Toolchain upgrade rule
 
 - Upgrade `rust-toolchain.toml`, workflow setup, and bootstrap docs together.
@@ -27,9 +37,10 @@ Bootstrap scripts are written in TypeScript and run through Bun.
 
 ## Verification loops
 
-- Fast pre-PR loop: `just fmt && just lint && just test-fast`
-- Full local loop: `just test && just corpus && just determinism && just release-check`
+- Fast pre-PR loop: `just pr-fast`
+- Full local pre-PR loop: `just pr-full`
 - Full CI parity: `just ci`
+- Release-only gate: `just release`
 
 ## Fixtures
 
@@ -38,7 +49,7 @@ Bootstrap scripts are written in TypeScript and run through Bun.
 
 ## Generated artifacts
 
-- Generated bootstrap artifacts must be reproducible from a clean checkout.
+- Generated artifacts must be reproducible from a clean checkout.
 - Run `just fmt` to normalize generated docs and example manifests.
 - Run `just determinism` or `just release-check` before opening a PR; both fail if regeneration leaves the tree dirty.
 

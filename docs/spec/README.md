@@ -21,5 +21,5 @@ Suggested reading order:
 3. `docs/spec/RC_CHECKLIST.md`
 
 The explainer builds the mental model.
-The spec freezes the contract.
+The spec freezes the contract and is the source of truth for any normative question.
 The checklist tracks what must be proven before final v1.

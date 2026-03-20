@@ -18,4 +18,4 @@ jobs:
           components: rustfmt, clippy
       - uses: taiki-e/install-action@just
       - name: Run release gate
-        run: just ci
+        run: just release

@@ -1,50 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
+import { parseEnumFlag } from "./lib/cli";
+import { doctorSurfaces, fixturePaths, requiredPaths, root, surfaceRequirements } from "./lib/bootstrap";
 
-const root = resolve(import.meta.dir, "..");
-
-const requiredPaths = [
-  "docs/spec/SPEC.md",
-  "docs/spec/RC_CHECKLIST.md",
-  "docs/v1-final/freeze-ledger.md",
-  "docs/v1-final/appendix-b-freeze-matrix.md",
-  "docs/v1-final/compatibility-matrix.md",
-  "docs/v1-final/traceability-matrix.md",
-  "docs/v1-final/release-evidence-index.md",
-  "docs/adr/0001-v1-architecture-and-policy.md",
-  "docs/dev/workflows.md",
-  "docs/policies/generated-artifacts.md",
-  "schemas/corpus-outcome.schema.json",
-  "schemas/release-evidence-manifest.schema.json",
-  "manifests/corpus-outcome.example.json",
-  "manifests/release-evidence.example.json",
-  ".github/workflows/pr-fast.yml",
-  ".github/workflows/pr-full.yml",
-  ".github/workflows/nightly.yml",
-  ".github/workflows/release.yml",
-  "justfile",
-  "rust-toolchain.toml",
-  "package.json",
-  "tsconfig.json"
-];
-
-const fixturePaths = [
-  "fixtures/monaco/monaco.osm.obf",
-  "fixtures/monaco/monaco-gtfs.zip",
-  "fixtures/aachen/aachen.osm.obf",
-  "fixtures/aachen/aachen-gtfs.zip"
-];
-
-const surfaceRequirements: Record<string, string[]> = {
-  lint: ["schemas/corpus-outcome.schema.json", "schemas/release-evidence-manifest.schema.json"],
-  "test-fast": fixturePaths,
-  fuzz: ["docs/dev/workflows.md", ".github/workflows/nightly.yml"],
-  bench: ["docs/dev/workflows.md", ".github/workflows/nightly.yml"],
-  release: ["docs/policies/generated-artifacts.md", ".github/workflows/release.yml"]
-};
-
-function requirePaths(paths: string[]): string[] {
+function requirePaths(paths: readonly string[]): string[] {
   return paths
     .filter((path) => !existsSync(resolve(root, path)))
     .map((path) => `missing required path: ${path}`);
@@ -86,8 +46,7 @@ function requirePinnedRustToolchain(): string[] {
 
 const args = process.argv.slice(2);
 const setup = args.includes("--setup");
-const surfaceIndex = args.indexOf("--surface");
-const surface = surfaceIndex >= 0 ? args[surfaceIndex + 1] : undefined;
+const surface = parseEnumFlag(args, "--surface", doctorSurfaces);
 
 if (setup) {
   printSetupHints();
@@ -103,10 +62,6 @@ const errors = [
 ];
 
 if (surface) {
-  if (!(surface in surfaceRequirements)) {
-    console.error(`ERROR: unknown surface: ${surface}`);
-    process.exit(1);
-  }
   errors.push(...requirePaths(surfaceRequirements[surface]));
 }
 

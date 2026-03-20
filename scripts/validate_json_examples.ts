@@ -1,8 +1,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { type } from "arktype";
-
-const root = resolve(import.meta.dir, "..");
+import { parseEnumFlag } from "./lib/cli";
+import { manifestKinds, root } from "./lib/bootstrap";
 
 const corpusSchema = resolve(root, "schemas/corpus-outcome.schema.json");
 const releaseSchema = resolve(root, "schemas/release-evidence-manifest.schema.json");
@@ -106,8 +106,7 @@ function ensureRelease(data: unknown): void {
 
 const args = process.argv.slice(2);
 const rewrite = args.includes("--rewrite");
-const onlyIndex = args.indexOf("--only");
-const only = onlyIndex >= 0 ? args[onlyIndex + 1] : undefined;
+const only = parseEnumFlag(args, "--only", manifestKinds);
 
 if (!only || only === "corpus") {
   const data = loadJson(corpusExample);

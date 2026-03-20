@@ -16,4 +16,4 @@ jobs:
           components: rustfmt, clippy
       - uses: taiki-e/install-action@just
       - name: Run full PR checks
-        run: just test && just corpus && just determinism && just release-check
+        run: just pr-full

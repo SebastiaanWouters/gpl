@@ -3,6 +3,25 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 default:
     @just --list
 
+pr-fast:
+    just doctor
+    just fmt
+    just lint
+    just test-fast
+
+pr-full:
+    just test
+    just corpus
+    just determinism
+    just release-check
+
+nightly:
+    just fuzz
+    just bench
+
+release:
+    just release-check
+
 setup:
     bun run scripts/doctor.ts --setup
 
@@ -44,13 +63,6 @@ release-check:
     bun run scripts/check_generated_clean.ts --scope release
 
 ci:
-    just doctor
-    just fmt
-    just lint
-    just test-fast
-    just test
-    just corpus
-    just determinism
-    just fuzz
-    just bench
-    just release-check
+    just pr-fast
+    just pr-full
+    just nightly

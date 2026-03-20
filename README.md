@@ -25,7 +25,7 @@ The spec drafts and fixtures are in place. The GPL v1 finalization control plane
 
 ## Development bootstrap
 
-- read `CONTRIBUTING.md` for setup, fast/full verification, and fixture expectations
-- use the root `justfile` as the canonical local and CI entrypoint surface
-- use Bun-run TypeScript scripts under `scripts/` for control-plane generation and bootstrap checks
-- treat `docs/spec/SPEC.md` as authoritative for GPL v1 base on-disk behavior
+- start with `CONTRIBUTING.md` for the setup path and recommended local loops
+- use the root `justfile` as the canonical local and CI entrypoint surface; `package.json` mirrors those same top-level lanes for Bun users
+- see `docs/dev/workflows.md` for the local-to-CI workflow map and `docs/policies/generated-artifacts.md` for generated artifact rules
+- read `docs/spec/SPEC_EXPLAINED.md` first for context, but treat `docs/spec/SPEC.md` as authoritative for GPL v1 base on-disk behavior

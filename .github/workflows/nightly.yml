@@ -17,4 +17,4 @@ jobs:
           components: rustfmt, clippy
       - uses: taiki-e/install-action@just
       - name: Run nightly surfaces
-        run: just fuzz && just bench
+        run: just nightly
