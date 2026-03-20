@@ -7,7 +7,7 @@ const checklistPath = resolve(root, "docs/spec/RC_CHECKLIST.md");
 const traceabilityPath = resolve(root, "docs/v1-final/traceability-matrix.md");
 const evidencePath = resolve(root, "docs/v1-final/release-evidence-index.md");
 
-type Requirement = {
+export type Requirement = {
   line: number;
   heading: string;
   summary: string;
@@ -24,7 +24,7 @@ type Rule<T> = {
   when: (value: Requirement) => boolean;
 };
 
-type ProofPlan = {
+export type ProofPlan = {
   writer: string;
   reader: string;
   validator: string;
@@ -101,7 +101,7 @@ function extractRequirements(): Requirement[] {
   return extractRequirementsFromLines(readFileSync(specPath, "utf8").split(/\r?\n/));
 }
 
-function isGovernanceRequirement(requirement: Requirement): boolean {
+export function isGovernanceRequirement(requirement: Requirement): boolean {
   return (
     startsWithAny(requirement.heading, ["1.", "1.1", "5. Conformance Language and Terminology", "6.5"]) ||
     matchesAny(requirement.summary, [
@@ -115,7 +115,7 @@ function isGovernanceRequirement(requirement: Requirement): boolean {
   );
 }
 
-function isContainerRequirement(requirement: Requirement): boolean {
+export function isContainerRequirement(requirement: Requirement): boolean {
   return (
     matchesAny(requirement.heading, ["Header", "Directory", "Footer", "Alignment", "Compression"]) ||
     matchesAny(requirement.summary, [
@@ -132,7 +132,7 @@ function isContainerRequirement(requirement: Requirement): boolean {
   );
 }
 
-function isReaderCompatibilityRequirement(requirement: Requirement): boolean {
+export function isReaderCompatibilityRequirement(requirement: Requirement): boolean {
   return matchesAny(requirement.summary, [
     "A reader MUST reject",
     "A reader MUST ignore",
@@ -146,7 +146,7 @@ function isReaderCompatibilityRequirement(requirement: Requirement): boolean {
   ]);
 }
 
-function isWriterRejectionRequirement(requirement: Requirement): boolean {
+export function isWriterRejectionRequirement(requirement: Requirement): boolean {
   return matchesAny(requirement.summary, [
     "writer MUST reject",
     "writer without a required",
@@ -156,7 +156,7 @@ function isWriterRejectionRequirement(requirement: Requirement): boolean {
   ]);
 }
 
-function isCrossSectionRequirement(requirement: Requirement): boolean {
+export function isCrossSectionRequirement(requirement: Requirement): boolean {
   return matchesAny(requirement.summary, [
     "contiguous span",
     "in bounds",
@@ -172,7 +172,7 @@ function isCrossSectionRequirement(requirement: Requirement): boolean {
   ]);
 }
 
-function isReservedZeroRequirement(requirement: Requirement): boolean {
+export function isReservedZeroRequirement(requirement: Requirement): boolean {
   return matchesAny(requirement.summary, [
     "reserved bytes MUST be zero",
     "reserved-zero",
@@ -185,11 +185,11 @@ function isReservedZeroRequirement(requirement: Requirement): boolean {
   ]);
 }
 
-function isDeterminismRequirement(requirement: Requirement): boolean {
+export function isDeterminismRequirement(requirement: Requirement): boolean {
   return matchesAny(requirement.summary, ["deterministic", "byte-identical", "Tie-breaking MUST be deterministic"]);
 }
 
-function isSectionLayoutRequirement(requirement: Requirement): boolean {
+export function isSectionLayoutRequirement(requirement: Requirement): boolean {
   return matchesAny(requirement.summary, [
     "MUST use the `",
     "MUST be a flat",
@@ -200,12 +200,12 @@ function isSectionLayoutRequirement(requirement: Requirement): boolean {
   ]);
 }
 
-function isOrderingRequirement(requirement: Requirement): boolean {
+export function isOrderingRequirement(requirement: Requirement): boolean {
   return matchesAny(requirement.heading, ["Ordering"]) ||
     matchesAny(requirement.summary, ["MUST be sorted", "row-major", "concatenation of", "grouped by", "ordered last"]);
 }
 
-function isValidatorConformanceRequirement(requirement: Requirement): boolean {
+export function isValidatorConformanceRequirement(requirement: Requirement): boolean {
   return matchesAny(requirement.summary, [
     "validator MUST",
     "strict validators",
@@ -215,7 +215,7 @@ function isValidatorConformanceRequirement(requirement: Requirement): boolean {
   ]);
 }
 
-function isBaseSemanticRequirement(requirement: Requirement): boolean {
+export function isBaseSemanticRequirement(requirement: Requirement): boolean {
   return matchesAny(requirement.heading, [
     "Conformance Targets",
     "Normative Versus Advisory Data",
@@ -241,11 +241,11 @@ function isBaseSemanticRequirement(requirement: Requirement): boolean {
   ]);
 }
 
-function isAppendixFRequirement(requirement: Requirement): boolean {
+export function isAppendixFRequirement(requirement: Requirement): boolean {
   return requirement.heading.includes("Appendix F") || requirement.summary.includes("Appendix F");
 }
 
-function isSpecShapeRequirement(requirement: Requirement): boolean {
+export function isSpecShapeRequirement(requirement: Requirement): boolean {
   return matchesAny(requirement.heading, ["MANIFEST", "StringTableV1", "StopAnchorV1"]) ||
     matchesAny(requirement.summary, [
       "MUST equal `0`",
